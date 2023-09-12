@@ -3,7 +3,7 @@
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made.
 Version: 1.0
-Author: SequelWP
+Author: Hosting Provider
 */
 
 /**
@@ -12,16 +12,18 @@ Author: SequelWP
  * @return string|false The API key if found, or false if not.
  */
 function get_api_key_from_file() {
-    $doc_root = $_SERVER['DOCUMENT_ROOT'];
-    $api_key_path = "$doc_root/etc/apikey";
+    $path_parts = explode("/", $_SERVER['DOCUMENT_ROOT']);
+    $unique_id = $path_parts[count($path_parts) - 2]; // Get the 2nd-to-last part of the path
+    $api_key_path = "/var/www/$unique_id/etc/apikey";
     
     if (!file_exists($api_key_path)) {
-        error_log('API key file not found.');
+        error_log("API key file not found at $api_key_path.");
         return false;
     }
     
     return trim(file_get_contents($api_key_path));
 }
+
 
 /**
  * Call the cache purge API.
