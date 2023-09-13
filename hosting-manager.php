@@ -6,12 +6,10 @@ Version: 1.1
 Author: Hosting Provider
 */
 
-// API Cache Purge Functions
-
 function get_api_key_from_file() {
     $path_parts = explode("/", $_SERVER['DOCUMENT_ROOT']);
     $unique_id = $path_parts[count($path_parts) - 2];
-    $api_key_path = "/var/www/$unique_id/etc/apikey";
+    $api_key_path = "/var/www/$unique_id/.etc/apikey";
     
     if (!file_exists($api_key_path)) {
         error_log("API key file not found at $api_key_path.");
@@ -81,14 +79,12 @@ function prevent_emails_on_staging($args) {
 
 add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
 
-// Set default value upon plugin activation
-
-function api_mail_plugin_activation() {
+// Set default value
+if (!get_option('disable_mail_setting')) {
     add_option('disable_mail_setting', '1');
 }
-register_activation_hook(__FILE__, 'api_mail_plugin_activation');
 
-// Settings Page Functions
+// Settings Page Functions (this part is optional for an MU plugin)
 
 function add_disable_mail_settings_page() {
     // Only add the menu if the domain contains 'wpstaging.io'
@@ -153,4 +149,3 @@ function disable_mail_field_cb() {
     <input type="checkbox" name="disable_mail_setting" value="1" <?php checked(1, $setting, true); ?>>
     <?php
 }
-?>
