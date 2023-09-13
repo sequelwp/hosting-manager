@@ -2,18 +2,15 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made.
-Version: 1.0
+Version: 1.1
 Author: Hosting Provider
 */
 
-/**
- * Retrieve the API key from the dynamically determined file path.
- * 
- * @return string|false The API key if found, or false if not.
- */
+// API Cache Purge Functions
+
 function get_api_key_from_file() {
     $path_parts = explode("/", $_SERVER['DOCUMENT_ROOT']);
-    $unique_id = $path_parts[count($path_parts) - 2]; // Get the 2nd-to-last part of the path
+    $unique_id = $path_parts[count($path_parts) - 2];
     $api_key_path = "/var/www/$unique_id/etc/apikey";
     
     if (!file_exists($api_key_path)) {
@@ -24,21 +21,15 @@ function get_api_key_from_file() {
     return trim(file_get_contents($api_key_path));
 }
 
-
-/**
- * Call the cache purge API.
- */
 function purge_cache_on_change() {
     $api_key = get_api_key_from_file();
 
     if (!$api_key) {
-        return;  // Exit if the API key couldn't be retrieved
+        return;
     }
 
-    // Set domain
-    $domain = get_site_url();  // Adjust as needed
+    $domain = get_site_url();
 
-    // Setup the parameters
     $params = [
         'apiKey'   => $api_key,
         'function' => 'purgeCache',
@@ -58,29 +49,108 @@ function purge_cache_on_change() {
         error_log('cURL error: ' . curl_error($curl));
     }
 
-    $json = json_decode($result, true); // Decoding as an array for easier use
+    $json = json_decode($result, true);
 
-    if (isset($json['error'])) {  // Assuming the API returns an 'error' key on failure
+    if (isset($json['error'])) {
         error_log('API Error: ' . $json['error']);
     }
 
     curl_close($curl);
 }
 
-/**
- * Handle cache purging after core, plugin, or theme updates.
- */
 function purge_cache_after_any_update($upgrader_object, $options) {
     if ($options['action'] == 'update') {
         purge_cache_on_change();
     }
 }
 
-// Hook into content and settings changes
 add_action('save_post', 'purge_cache_on_change');
 add_action('edit_post', 'purge_cache_on_change');
 add_action('delete_post', 'purge_cache_on_change');
 add_action('updated_option', 'purge_cache_on_change');
-
-// Hook into updates for core, plugins, and themes
 add_action('upgrader_process_complete', 'purge_cache_after_any_update', 10, 2);
+
+// Mail Control Functions
+
+function prevent_emails_on_staging($args) {
+    if (get_option('disable_mail_setting', '1') && strpos(get_site_url(), 'wpstaging.io') !== false) {
+        $args['to'] = null;
+    }
+    return $args;
+}
+
+add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
+
+// Set default value upon plugin activation
+
+function api_mail_plugin_activation() {
+    add_option('disable_mail_setting', '1');
+}
+register_activation_hook(__FILE__, 'api_mail_plugin_activation');
+
+// Settings Page Functions
+
+function add_disable_mail_settings_page() {
+    // Only add the menu if the domain contains 'wpstaging.io'
+    if (strpos(get_site_url(), 'wpstaging.io') !== false) {
+        add_options_page(
+            'Disable Mail',
+            'Disable Mail',
+            'manage_options',
+            'disable-mail',
+            'disable_mail_settings_page_html'
+        );
+    }
+}
+add_action('admin_menu', 'add_disable_mail_settings_page');
+
+function disable_mail_settings_page_html() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    settings_errors('disable_mail_messages');
+    ?>
+    <div class="wrap">
+        <h1><?= esc_html(get_admin_page_title()); ?></h1>
+        <form action="options.php" method="post">
+            <?php
+            settings_fields('disable_mail');
+            do_settings_sections('disable_mail');
+            submit_button('Save Settings');
+            ?>
+        </form>
+    </div>
+    <?php
+}
+
+function disable_mail_settings_init() {
+    register_setting('disable_mail', 'disable_mail_setting');
+
+    add_settings_section(
+        'disable_mail_section',
+        'Mail Settings',
+        'disable_mail_section_cb',
+        'disable_mail'
+    );
+
+    add_settings_field(
+        'disable_mail_field',
+        'Disable mail on staging',
+        'disable_mail_field_cb',
+        'disable_mail',
+        'disable_mail_section'
+    );
+}
+add_action('admin_init', 'disable_mail_settings_init');
+
+function disable_mail_section_cb() {
+    echo '<p>Choose whether to disable emails on the wpstaging.io domain.</p>';
+}
+
+function disable_mail_field_cb() {
+    $setting = get_option('disable_mail_setting', '1');
+    ?>
+    <input type="checkbox" name="disable_mail_setting" value="1" <?php checked(1, $setting, true); ?>>
+    <?php
+}
+?>
