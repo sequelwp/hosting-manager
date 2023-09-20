@@ -2,14 +2,14 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made.
-Version: 1.1
+Version: 1.2
 Author: Hosting Provider
 */
 
 function get_api_key_from_file() {
     $path_parts = explode("/", $_SERVER['DOCUMENT_ROOT']);
     $unique_id = $path_parts[count($path_parts) - 2];
-    $api_key_path = "/var/www/$unique_id/.etc/apikey";
+    $api_key_path = "/var/www/$unique_id/etc/apikey";
     
     if (!file_exists($api_key_path)) {
         error_log("API key file not found at $api_key_path.");
@@ -56,16 +56,26 @@ function purge_cache_on_change() {
     curl_close($curl);
 }
 
+function purge_cache_on_content_change($post_id, $post, $update) {
+    if (wp_is_post_revision($post_id) || (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)) {
+        return;
+    }
+
+    if ('publish' !== $post->post_status) {
+        return;
+    }
+
+    purge_cache_on_change();
+}
+
 function purge_cache_after_any_update($upgrader_object, $options) {
     if ($options['action'] == 'update') {
         purge_cache_on_change();
     }
 }
 
-add_action('save_post', 'purge_cache_on_change');
-add_action('edit_post', 'purge_cache_on_change');
+add_action('save_post', 'purge_cache_on_content_change', 10, 3);
 add_action('delete_post', 'purge_cache_on_change');
-add_action('updated_option', 'purge_cache_on_change');
 add_action('upgrader_process_complete', 'purge_cache_after_any_update', 10, 2);
 
 // Mail Control Functions
@@ -79,15 +89,11 @@ function prevent_emails_on_staging($args) {
 
 add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
 
-// Set default value
 if (!get_option('disable_mail_setting')) {
     add_option('disable_mail_setting', '1');
 }
 
-// Settings Page Functions (this part is optional for an MU plugin)
-
 function add_disable_mail_settings_page() {
-    // Only add the menu if the domain contains 'wpstaging.io'
     if (strpos(get_site_url(), 'wpstaging.io') !== false) {
         add_options_page(
             'Disable Mail',
