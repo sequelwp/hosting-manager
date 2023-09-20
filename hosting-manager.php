@@ -2,7 +2,7 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made.
-Version: 1.3
+Version: 1.2
 Author: Hosting Provider
 */
 
