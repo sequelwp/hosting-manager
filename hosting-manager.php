@@ -2,20 +2,32 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made.
-Version: 1.2
+Version: 1.3
 Author: Hosting Provider
 */
+
+// Block Search Engines for wpstaging.io Domains
+function block_search_engines_on_staging($value) {
+    if (strpos(get_site_url(), 'wpstaging.io') !== false) {
+        return '0';
+    }
+    return $value;
+}
+
+add_filter('pre_option_blog_public', 'block_search_engines_on_staging');
+
+// API Cache Purge Functions
 
 function get_api_key_from_file() {
     $path_parts = explode("/", $_SERVER['DOCUMENT_ROOT']);
     $unique_id = $path_parts[count($path_parts) - 2];
     $api_key_path = "/var/www/$unique_id/etc/apikey";
-    
+
     if (!file_exists($api_key_path)) {
         error_log("API key file not found at $api_key_path.");
         return false;
     }
-    
+
     return trim(file_get_contents($api_key_path));
 }
 
