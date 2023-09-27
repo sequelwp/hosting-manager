@@ -72,6 +72,12 @@ function purge_cache_on_content_change($post_id, $post, $update) {
     if (wp_is_post_revision($post_id) || (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)) {
         return;
     }
+    // Array of post types to be cached; add to or modify this list as needed
+    $allowed_post_types = array('post', 'page', 'product'); 
+
+    if (!in_array($post->post_type, $allowed_post_types)) {
+        return; 
+    }
 
     if ('publish' !== $post->post_status) {
         return;
