@@ -2,7 +2,7 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made. Also disables emails on wpstaging.io.
-Version: 1.5
+Version: 1.6
 Author: Hosting Provider
 */
 
