@@ -1,8 +1,8 @@
 <?php
 /*
 Plugin Name: Hosting Manager
-Description: Manages caching and purges when changes are made.
-Version: 1.4
+Description: Manages caching and purges when changes are made. Also disables emails on wpstaging.io.
+Version: 1.5
 Author: Hosting Provider
 */
 
@@ -93,13 +93,19 @@ add_action('upgrader_process_complete', 'purge_cache_after_any_update', 10, 2);
 // Mail Control Functions
 
 function prevent_emails_on_staging($args) {
-    if (get_option('disable_mail_setting', '1') && strpos(get_site_url(), 'wpstaging.io') !== false) {
+    if (strpos(get_site_url(), 'wpstaging.io') !== false) {
         $args['to'] = null;
     }
     return $args;
 }
-
 add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
+
+function stop_smtp_emails($phpmailer) {
+    if (strpos(get_site_url(), 'wpstaging.io') !== false) {
+        $phpmailer->ClearAllRecipients();
+    }
+}
+add_action('phpmailer_init', 'stop_smtp_emails');
 
 if (!get_option('disable_mail_setting')) {
     add_option('disable_mail_setting', '1');
