@@ -2,7 +2,7 @@
 /*
 Plugin Name: Hosting Manager
 Description: Manages caching and purges when changes are made. Also disables emails on wpstaging.io.
-Version: 1.6
+Version: 1.7
 Author: Hosting Provider
 */
 
@@ -107,8 +107,8 @@ function prevent_emails_on_staging($args) {
 add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
 
 function stop_smtp_emails($phpmailer) {
-    if (strpos(get_site_url(), 'wpstaging.io') !== false) {
-        $phpmailer->ClearAllRecipients();
+if ('1' === get_option('disable_mail_setting', '1')) {
+ $phpmailer->ClearAllRecipients();
     }
 }
 add_action('phpmailer_init', 'stop_smtp_emails');
