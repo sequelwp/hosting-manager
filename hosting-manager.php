@@ -108,8 +108,10 @@ add_filter('wp_mail', 'prevent_emails_on_staging', 10, 1);
 
 function stop_smtp_emails($phpmailer) {
     if (strpos(get_site_url(), 'wpstaging.io') !== false) {
+if ('1' === get_option('disable_mail_setting', '1')) {
         $phpmailer->ClearAllRecipients();
-    }
+}
+   }
 }
 add_action('phpmailer_init', 'stop_smtp_emails');
 
